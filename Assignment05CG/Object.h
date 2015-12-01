@@ -50,6 +50,9 @@ public:
 	void scaleAll(float x);
 
 	vec3 getPosition();
+	vec3 getRotation();
+
+	void setPosition(vec3);
 
 	static void setViewMatrix(mat4 v);
 	static void setProjectionMatrix(mat4 v);

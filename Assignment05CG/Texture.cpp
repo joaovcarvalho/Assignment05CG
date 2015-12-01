@@ -4,16 +4,12 @@
 
 Texture::Texture(const char* fileName)
 {
-	int width, height;
-
-	unsigned char * data;
-
 	this->id = SOIL_load_OGL_texture
 		(
 			fileName,
 			SOIL_LOAD_AUTO,
 			SOIL_CREATE_NEW_ID,
-			SOIL_FLAG_TEXTURE_REPEATS
+			SOIL_FLAG_MIPMAPS | SOIL_FLAG_TEXTURE_REPEATS
 			);
 
 	if (0 == this->id)

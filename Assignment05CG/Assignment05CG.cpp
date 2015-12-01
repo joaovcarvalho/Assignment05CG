@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "Shader.h"
 #include "Object.h"
+#include "RigidBody.h"
 #include "Texture.h"
 #include <math.h>
 #include <cmath>
@@ -31,7 +32,7 @@ Shader* nonTextureShader;
 Shader* skyBoxShader;
 
 Object* earth;
-Object* frigate;
+RigidBody* frigate;
 Object* moon;
 Object* sun;
 
@@ -67,21 +68,23 @@ void display() {
 	mat4 projection = perspective(45.0, (float)glutGet(GLUT_WINDOW_WIDTH) / (float)glutGet(GLUT_WINDOW_HEIGHT), 0.1, 2000.0);
 
 	// Camera rotation control
-	if (cameraRotationXEnabled) {
-		rotation_camera_y += cameraSpeedRotation;
-	}
-
-	if (cameraRotationYEnabled) {
-		rotation_camera_x += cameraSpeedRotation;
-	}
+	frigate->update();
 
 	// Moving the camera in the direction of the view
 	camera_position = camera_position + (ViewDir*foward);
 	foward = 0;
 
-	view = translate(view, camera_position);
-	view = rotate_y_deg(view, -rotation_camera_y);
-	view = rotate_x_deg(view, -rotation_camera_x);
+	rotation_camera_x = (frigate->getRotation()).v[0];
+	rotation_camera_y = (frigate->getRotation()).v[1];
+	
+	mat4 rotation = rotate_y_deg(identity_mat4(), rotation_camera_y);
+	rotation = rotate_x_deg(rotation, rotation_camera_x);
+	vec3 offset = vec3(rotation*vec4(0.0, 10.0, -25.0, 1.0));
+
+	vec3 cam_pos_lookat = frigate->getPosition() + offset;
+	vec3 up = vec3(0.0, 1.0, 0.0);
+
+	view = look_at(cam_pos_lookat, frigate->getPosition(), vec3(rotation*vec4(0.0, 1.0, 0.0, 1.0)));
 
 	// Set up projection and view matrix for all the objects statically
 	Object::setProjectionMatrix(projection);
@@ -95,7 +98,6 @@ void display() {
 	sun->rotate(0, 0.01f, 0);
 	sun->display();
 
-	frigate->rotate(0, 0.01f, 0);
 	frigate->display();
 
 	glutSwapBuffers();
@@ -115,10 +117,10 @@ void init()
 	earthTexture = new Texture("models/Earth_Diffuse.jpg");
 	moonTexture = new Texture("models/moonmap2k.jpg");
 	sunTexture = new Texture("models/sun.jpg");
-	frigateTexture = new Texture("models/space_frigate/space_frigate_6_color.png");
+	frigateTexture = new Texture("models/Maps/zqw1b.jpg");
 
 	// Instantitate the objects
-	frigate = new Object(nonTextureShader, "models/model.obj");
+	frigate = new RigidBody(nonTextureShader, "models/space_frigate.obj");
 	earth = new Object(shader, "models/Earth.obj", earthTexture);
 	moon = new Object(shader, "models/Earth.obj", moonTexture);
 	sun = new Object(nonDiffuseShader, "models/Earth.obj", sunTexture);
@@ -130,7 +132,7 @@ void init()
 
 	frigate->scaleAll(0.1);
 	frigate->move(0, 0.0f, 100.0f);
-	frigate->rotate(0, 180.0, 0);
+	frigate->rotate(0, 90, 0);
 
 	moon->scaleAll(0.3);
 	moon->move(75.0f, 0, 0.0f);
@@ -182,17 +184,8 @@ void mouseMove(int x, int y) {
 
 // Placeholder code for the keypress
 void keypress(unsigned char key, int x, int y) {
-	if (key == 'x') {
-		exit(0);
-	}
-
-	if (key == 's') {
-		foward += cameraSpeedFoward;
-	}
-
-	if (key == 'w') {
-		foward -= cameraSpeedFoward;
-	}
+	rotation_camera_x = (frigate->getRotation()).v[0];
+	rotation_camera_y = (frigate->getRotation()).v[1];
 
 	vec3 Step1, Step2;
 	//Rotate around Y-axis:
@@ -207,6 +200,37 @@ void keypress(unsigned char key, int x, int y) {
 
 	//Rotation around Z-axis not yet implemented, so:
 	ViewDir = Step2;
+
+
+	if (key == 'x') {
+		exit(0);
+	}
+
+	if (key == 'a') {
+		frigate->rotate(0, 1, 0);
+	}
+
+	if (key == 'd') {
+		frigate->rotate(0,-1,0);
+	}
+
+	if (key == 'w') {
+		frigate->rotate(1, 0, 0);
+	}
+
+	if (key == 's') {
+		frigate->rotate(-1, 0, 0);
+	}
+
+	if (key == 'k') {
+		frigate->applyForce(ViewDir*0.000001);
+	}
+
+	if (key == 'j') {
+		frigate->applyForce(ViewDir*-0.000001);
+	}
+
+	
 }
 
 void updateScene() {

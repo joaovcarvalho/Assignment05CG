@@ -162,6 +162,7 @@
     <ClInclude Include="image_helper.h" />
     <ClInclude Include="maths_funcs.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="RigidBody.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Skybox.h" />
     <ClInclude Include="SOIL.h" />
@@ -178,6 +179,7 @@
     <ClCompile Include="image_helper.c" />
     <ClCompile Include="maths_funcs.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="RigidBody.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="SOIL.c" />

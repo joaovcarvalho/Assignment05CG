@@ -27,6 +27,14 @@ vec3 Object::getPosition() {
 	return this->position;
 }
 
+void Object::setPosition(vec3 v) {
+	this->position = v;
+}
+
+vec3 Object::getRotation() {
+	return this->rotation;
+}
+
 void Object::rotate(float x, float y, float z) {
 	this->rotation += vec3(x, y, z);
 }

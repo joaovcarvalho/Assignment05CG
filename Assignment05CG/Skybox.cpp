@@ -25,10 +25,9 @@ void Skybox::generateCubeTexture() {
 			"skybox.jpg",
 			SOIL_LOAD_AUTO,
 			SOIL_CREATE_NEW_ID,
-			SOIL_FLAG_TEXTURE_REPEATS
+			SOIL_FLAG_MIPMAPS | SOIL_FLAG_TEXTURE_REPEATS
 			);
 
-	std::cout << "idTexture: " << this->idTexture << std::endl;
 	if (0 == this->idTexture)
 	{
 		printf("SOIL loading error: '%s'\n", SOIL_last_result());
