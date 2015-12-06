@@ -2,22 +2,23 @@
 
 RigidBody::RigidBody(Shader* shader, char* meshName, Texture* texture):Object(shader, meshName, texture)
 {
-	acceleration = vec3(0, 0, 0);
-	velocity = vec3(0, 0, 0);
+	velocity = 0.5f;
 
 	angularVelocity = vec3(0, 0, 0);
 	angularAcceleration = vec3(0, 0, 0);
 }
 
 void RigidBody::applyForce(vec3 f) {
-	acceleration += f;
+
 }
 
 void RigidBody::update() {
-	velocity += acceleration;
-	this->setPosition(this->getPosition() + velocity);
+	this->setPosition(this->getPosition()+ this->viewDir*velocity);
 }
 
+void RigidBody::setViewDir(vec3 d) {
+	this->viewDir = d;
+}
 
 RigidBody::~RigidBody()
 {

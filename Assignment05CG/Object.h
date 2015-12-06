@@ -6,7 +6,7 @@
 
 class Object
 {
-private:
+protected:
 	static int vboId;
 	unsigned int vao = NULL;
 	unsigned int vp_vbo = 0;
@@ -35,9 +35,27 @@ private:
 	std::vector<Object*> childs;
 
 	void bindVBO();
+	GLuint ibo_elements;
+	GLuint vbo_vertices_bounding_box;
+
+	vec3 sizeBoundingBox;
+	vec3 centerBoundingBox;
 
 public:
 	Object(Shader* shader, char* meshName, Texture* texture = NULL);
+	Object();
+
+	void Object::setVAO(float v);
+	void Object::setShader(Shader* s);
+	void Object::setVertexCounter(int n);
+	void Object::setSizeBoudingBox(vec3);
+	void Object::setCenterBoudingBox(vec3);
+	void Object::setVertices(std::vector<float>);
+	void generateBoundingBox();
+	void Object::setBoundingBox(GLuint, GLuint, vec3, vec3);
+	void Object::setVPVBO(GLuint);
+
+	std::vector<float> getVertices();
 
 	void generateObjectBufferMesh(GLuint shaderProgramID, int numVertices);
 	bool load_mesh(const char* file_name);
@@ -53,6 +71,7 @@ public:
 	vec3 getRotation();
 
 	void setPosition(vec3);
+	void setRotation(vec3);
 
 	static void setViewMatrix(mat4 v);
 	static void setProjectionMatrix(mat4 v);
@@ -60,6 +79,9 @@ public:
 	void resetState();
 
 	void addChild(Object*);
+
+	Object* clone();
+	void drawBoundingBox();
 
 	~Object();
 };

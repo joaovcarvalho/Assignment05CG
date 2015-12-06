@@ -16,6 +16,17 @@ Object::Object(Shader* shader, char* meshName, Texture* texture)
 	scaleVec = vec3(1,1,1);
 
 	this->childs = std::vector<Object*>();
+
+	generateBoundingBox();
+}
+
+Object::Object() {
+	this->model = identity_mat4();
+	position = vec3(0, 0, 0);
+	rotation = vec3(0, 0, 0);
+	scaleVec = vec3(1, 1, 1);
+
+	this->childs = std::vector<Object*>();
 }
 
 
@@ -30,6 +41,11 @@ vec3 Object::getPosition() {
 void Object::setPosition(vec3 v) {
 	this->position = v;
 }
+
+void Object::setRotation(vec3 v) {
+	this->rotation = v;
+}
+
 
 vec3 Object::getRotation() {
 	return this->rotation;
@@ -70,41 +86,7 @@ void Object::addChild(Object* c) {
 	this->childs.push_back(c);
 }
 
-void Object::display(mat4 fatherMatrix) {
-	this->bindVBO();
-	if(this->texture != NULL)
-		this->texture->Bind(0);
 
-	GLuint shaderProgramID = this->shader->getProgramID();
-	glUseProgram(shaderProgramID);
-
-	int matrix_location = glGetUniformLocation(shaderProgramID, "model");
-	int view_mat_location = glGetUniformLocation(shaderProgramID, "view");
-	int proj_mat_location = glGetUniformLocation(shaderProgramID, "proj");
-
-	this->model = identity_mat4();
-
-	this->model = scale(model, this->scaleVec);
-
-	this->model = rotate_x_deg(this->model, rotation.v[0]);
-	this->model = rotate_y_deg(this->model, rotation.v[1]);
-	this->model = rotate_z_deg(this->model, rotation.v[2]);
-
-	this->model = translate(this->model, position);
-
-	mat4 resultMatrix = fatherMatrix*this->model;
-	// update uniforms & draw
-	glUniformMatrix4fv(proj_mat_location, 1, GL_FALSE, this->projection.m);
-	glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, this->view.m);
-	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, resultMatrix.m);
-
-	glDrawArrays(GL_TRIANGLES, 0, this->vertexCounter);
-
-	int i = 0;
-	for (std::vector<Object*>::iterator it = this->childs.begin(); it != this->childs.end(); ++it) {
-		(*it)->display(resultMatrix);
-	}
-}
 
 void Object::bindVBO() {
 	GLuint shaderProgramID = this->shader->getProgramID();
@@ -129,7 +111,11 @@ void Object::bindVBO() {
 			glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 		}
 	}else{
-		glBindVertexArray(vao);	
+		glBindVertexArray(vao);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vp_vbo);
+		glEnableVertexAttribArray(loc1);
+		glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	}
 
 
@@ -230,4 +216,200 @@ void Object::generateObjectBufferMesh(GLuint shaderProgramID, int numVertices) {
 		glBindBuffer(GL_ARRAY_BUFFER, vt_vbo);
 		glBufferData(GL_ARRAY_BUFFER, numVertices * 2 * sizeof(float), &g_vt[0], GL_STATIC_DRAW);
 	}
+}
+
+void Object::setVAO(float v) {
+	this->vao = v;
+}
+
+void Object::setShader(Shader* s) {
+	this->shader = s;
+}
+
+void Object::setVertexCounter(int n) {
+	this->vertexCounter = n;
+}
+
+std::vector<float> Object::getVertices() {
+	return this->g_vp;
+}
+
+void Object::setCenterBoudingBox(vec3 v) {
+	this->centerBoundingBox = v;
+}
+
+void Object::setSizeBoudingBox(vec3 v) {
+	this->sizeBoundingBox = v;
+}
+
+void Object::setVertices(std::vector<float> v) {
+	this->g_vp = v;
+}
+
+void Object::setBoundingBox(GLuint vbo, GLuint elements, vec3 size, vec3 center) {
+	this->vbo_vertices_bounding_box = vbo;
+	this->ibo_elements = elements;
+	this->sizeBoundingBox = size;
+	this->centerBoundingBox = center;
+}
+
+void Object::setVPVBO(GLuint v) {
+	this->vp_vbo = v;
+}
+
+Object* Object::clone() {
+	Object* obj = new Object();
+	obj->setPosition(this->position);
+	for (std::vector<Object*>::iterator it = this->childs.begin(); it != this->childs.end(); ++it) {
+		obj->addChild(*it);
+	}
+	this->bindVBO();
+
+	obj->setRotation(this->rotation);
+	obj->setVAO(this->vao);
+	obj->setShader(this->shader);
+	obj->setVertexCounter(this->vertexCounter);
+
+	obj->setVertices(this->g_vp);
+	obj->setVPVBO(this->vp_vbo);
+	obj->setBoundingBox(this->vbo_vertices_bounding_box, 
+						this->ibo_elements,
+						this->sizeBoundingBox,
+						this->centerBoundingBox);
+
+	return obj;
+}
+
+
+void Object::generateBoundingBox() {
+	if (this->getVertices().size() == 0)
+		return;
+
+	// Cube 1x1x1, centered on origin
+	GLfloat vertices[] = {
+		-0.5, -0.5, -0.5,
+		0.5, -0.5, -0.5,
+		0.5,  0.5, -0.5,
+		-0.5,  0.5, -0.5,
+		-0.5, -0.5,  0.5,
+		0.5, -0.5,  0.5,
+		0.5,  0.5,  0.5,
+		-0.5,  0.5,  0.5,
+	};
+	glGenBuffers(1, &vbo_vertices_bounding_box);
+	glEnableVertexAttribArray(loc1);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices_bounding_box);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	GLushort elements[] = {
+		0, 1, 2, 3,
+		4, 5, 6, 7,
+		0, 4, 1, 5, 2, 6, 3, 7
+	};
+
+	glGenBuffers(1, &ibo_elements);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_elements);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+
+	GLfloat
+		min_x, max_x,
+		min_y, max_y,
+		min_z, max_z;
+	min_x = max_x = this->getVertices()[0];
+	min_y = max_y = this->getVertices()[1];
+	min_z = max_z = this->getVertices()[2];
+
+	for (int i = 0; i < this->getVertices().size(); i += 3) {
+
+		if (this->getVertices()[i] < min_x) min_x = this->getVertices()[i];
+		if (this->getVertices()[i] > max_x) max_x = this->getVertices()[i];
+		if (this->getVertices()[i + 1] < min_y) min_y = this->getVertices()[i + 1];
+		if (this->getVertices()[i + 1] > max_y) max_y = this->getVertices()[i + 1];
+		if (this->getVertices()[i + 2] < min_z) min_z = this->getVertices()[i + 2];
+		if (this->getVertices()[i + 2] > max_z) max_z = this->getVertices()[i + 2];
+	}
+
+	sizeBoundingBox = vec3(max_x - min_x, max_y - min_y, max_z - min_z);
+	centerBoundingBox = vec3((min_x + max_x) / 2, (min_y + max_y) / 2, (min_z + max_z) / 2);
+}
+
+void Object::display(mat4 fatherMatrix) {
+	this->bindVBO();
+	if (this->texture != NULL)
+		this->texture->Bind(0);
+
+	GLuint shaderProgramID = this->shader->getProgramID();
+	glUseProgram(shaderProgramID);
+
+	int matrix_location = glGetUniformLocation(shaderProgramID, "model");
+	int view_mat_location = glGetUniformLocation(shaderProgramID, "view");
+	int proj_mat_location = glGetUniformLocation(shaderProgramID, "proj");
+
+	this->model = identity_mat4();
+
+	this->model = scale(model, this->scaleVec);
+
+	this->model = rotate_z_deg(this->model, rotation.v[2]);
+	this->model = rotate_y_deg(this->model, rotation.v[1]);
+	this->model = rotate_x_deg(this->model, rotation.v[0]);
+
+	this->model = translate(this->model, position);
+
+	mat4 resultMatrix = fatherMatrix*this->model;
+	// update uniforms & draw
+	glUniformMatrix4fv(proj_mat_location, 1, GL_FALSE, this->projection.m);
+	glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, this->view.m);
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, resultMatrix.m);
+
+	glDrawArrays(GL_TRIANGLES, 0, this->vertexCounter);
+
+	int i = 0;
+	for (std::vector<Object*>::iterator it = this->childs.begin(); it != this->childs.end(); ++it) {
+		(*it)->display(resultMatrix);
+	}
+}
+
+void Object::drawBoundingBox() {
+	/* Apply object's transformation matrix */
+	mat4 transform = translate(identity_mat4(), centerBoundingBox)* scale(identity_mat4(), sizeBoundingBox);
+	transform = scale(transform, this->scaleVec);
+
+	transform = rotate_z_deg(transform, rotation.v[2]);
+	transform = rotate_y_deg(transform, rotation.v[1]);
+	transform = rotate_x_deg(transform, rotation.v[0]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices_bounding_box);
+
+	loc1 = glGetAttribLocation(this->shader->getProgramID(), "vertex_position");
+	glVertexAttribPointer(
+		loc1,  // attribute
+		3,                  // number of elements per vertex, here (x,y,z)
+		GL_FLOAT,           // the type of each element
+		GL_FALSE,           // take our values as-is
+		0,                  // no extra data between each position
+		NULL
+		);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_elements);
+	
+	glUseProgram(this->shader->getProgramID());
+	
+	transform = translate(transform, this->getPosition());
+	int matrix_location = glGetUniformLocation(this->shader->getProgramID(), "model");
+	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, transform.m);
+
+	glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_SHORT, (GLvoid*)(4 * sizeof(GLushort)));
+	glDrawElements(GL_LINES, 8, GL_UNSIGNED_SHORT, (GLvoid*)(8 * sizeof(GLushort)));
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	//glDisableVertexAttribArray(loc1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	//glDeleteBuffers(1, &vbo_vertices_bounding_box);
+	//glDeleteBuffers(1, &ibo_elements);
 }

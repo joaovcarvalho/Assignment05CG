@@ -9,10 +9,12 @@ public:
 
 	void applyForce(vec3);
 	void update();
+	void setViewDir(vec3);
 
 private: 
-	vec3 acceleration;
-	vec3 velocity;
+	float velocity;
+
+	vec3 viewDir;
 
 	vec3 angularVelocity;
 	vec3 angularAcceleration;
