@@ -8,8 +8,12 @@ RigidBody::RigidBody(Shader* shader, char* meshName, Texture* texture):Object(sh
 	angularAcceleration = vec3(0, 0, 0);
 }
 
-void RigidBody::applyForce(vec3 f) {
+RigidBody::RigidBody() :Object() {
 
+}
+
+void RigidBody::setVelocity(float f) {
+	this->velocity = f;
 }
 
 void RigidBody::update() {
@@ -22,4 +26,28 @@ void RigidBody::setViewDir(vec3 d) {
 
 RigidBody::~RigidBody()
 {
+}
+
+RigidBody* RigidBody::clone() {
+	RigidBody* obj = new RigidBody();
+	obj->setPosition(this->position);
+	for (std::vector<Object*>::iterator it = this->childs.begin(); it != this->childs.end(); ++it) {
+		obj->addChild(*it);
+	}
+	this->bindVBO();
+
+	obj->setRotation(this->rotation);
+	obj->setVAO(this->vao);
+	obj->setShader(this->shader);
+	obj->setVertexCounter(this->vertexCounter);
+
+	obj->setVertices(this->g_vp);
+	obj->setVPVBO(this->vp_vbo);
+	obj->setBoundingBox(this->vbo_vertices_bounding_box, 
+						this->ibo_elements,
+						this->sizeBoundingBox,
+						this->centerBoundingBox);
+
+	return obj;
+
 }

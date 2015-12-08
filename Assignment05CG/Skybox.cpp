@@ -80,7 +80,7 @@ void Skybox::generateCubeVAO() {
 	};
 
 	for(int i = 0; i < (3*36); i++){
-		points[i] *= 100;
+		points[i] *= 1000;
 	}	
 	
 	int numVertices = 36;

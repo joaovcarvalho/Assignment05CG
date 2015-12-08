@@ -36,7 +36,9 @@ Object* sun;
 
 Skybox* skybox;
 
+RigidBody* bulletModel;
 std::vector<Object*> asteroids;
+std::vector<RigidBody*> bullets;
 
 // Direction that the camera is towarding
 vec3 ViewDir;
@@ -50,6 +52,33 @@ int Object::vboId = 0;
 
 float t = 0.001;
 float player_rotation_z = 0;
+
+void drawText(float x, float y, std::string text, vec4 color = vec4(1.0f,1.0f,1.0f, 1.0f)) {
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	gluOrtho2D(0.0, width, 0.0, height);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
+
+	glShadeModel(GL_FLAT);
+	
+	glRasterPos2i(x, y);
+	glColor4f(color.v[0], color.v[1], color.v[2], color.v[3]);
+	
+	for (int i = 0; i<text.size(); i++)
+	{
+		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, text[i]);
+	}
+
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+}
 
 void updateViewDir() {
 	vec3 Step1, Step2;
@@ -69,7 +98,6 @@ void updateViewDir() {
 	ViewDir = normalise(ViewDir);
 }
 
-bool isRotating = false;
 float orientation_rotation_y = 0;
 
 void display() {
@@ -78,6 +106,10 @@ void display() {
 	glDepthFunc(GL_LESS); // depth-testing interprets a smaller value as "closer"
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	string asteroidStatus = "Asteroids Left: ";
+	asteroidStatus.append(to_string(asteroids.size()));
+	drawText(10, 10, asteroidStatus);
 
 	GLfloat fogColor[4] = { 1.0f,1.0f,1.0f,1.0f };
 
@@ -89,7 +121,7 @@ void display() {
 	glFogf(GL_FOG_END, 500.0f);
 
 	mat4 view = identity_mat4();
-	mat4 projection = perspective(45.0, (float)glutGet(GLUT_WINDOW_WIDTH) / (float)glutGet(GLUT_WINDOW_HEIGHT), 0.1, 2000.0);
+	mat4 projection = perspective(45.0, (float)glutGet(GLUT_WINDOW_WIDTH) / (float)glutGet(GLUT_WINDOW_HEIGHT), 0.1, 100000.0);
 	
 	// Camera rotation control
 	updateViewDir();
@@ -104,23 +136,6 @@ void display() {
 	vec3 up = vec3(0.0, 1.0, 0.0);
 
 	view = look_at(cam_pos_lookat, player->getPosition(), vec3(vec4(up, 1.0)));
-
-	if (isRotating) {
-		// Rotation around z when rotating around y 
-		player_rotation_z += orientation_rotation_y;
-
-		if (abs(player_rotation_z) > 90)
-			player_rotation_z = 90 * orientation_rotation_y;
-	}else {
-		/*if (player_rotation_z != 0) {
-			if (player_rotation_z < 0) {
-				player_rotation_z = 0;
-			}
-			else {
-				player_rotation_z += player_rotation_z > 0 ? -1 : 1;
-			}
-		}*/
-	}
 
 	player->setRotation(vec3(0.0, rotation_camera_y + 90 + 180 , 0.0));
 
@@ -139,19 +154,56 @@ void display() {
 	player->display();
 	player->drawBoundingBox();
 
-	for (std::vector<Object*>::iterator it = asteroids.begin(); it != asteroids.end(); ++it) {
+	bulletModel->display();
+	bulletModel->drawBoundingBox();
+	
+	for (std::vector<RigidBody*>::iterator it = bullets.begin(); it != bullets.end(); ) {
+		(*it)->update();
+		(*it)->display();
+		(*it)->drawBoundingBox();
+
+		if (length((*it)->getPosition()) > 500) {
+			it = bullets.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
+
+	for (std::vector<Object*>::iterator it = asteroids.begin(); it != asteroids.end();) {
 		(*it)->rotate(0, 1.0f, 0);
 		(*it)->display();
 		(*it)->drawBoundingBox();
-	}
+		if(player->checkCollision(*it)){
+			cout << "Collided with an asteroid" << endl;
+		}
 
-	isRotating = false;
+		bool hited = false;
+
+		for (std::vector<RigidBody*>::iterator b = bullets.begin(); b != bullets.end(); ) {
+			if ((*it)->checkCollision(*b)) {
+				cout << "Bullet hit a asteroid" << endl;
+				it = asteroids.erase(it);
+				b  = bullets.erase(b);
+				hited = true;
+			}
+			else {
+				++b;
+			}
+		}
+
+		if (!hited) {
+			++it;
+		}
+	}
 
 	glutSwapBuffers();
 }
 
+
 void init()
 {
+	cout << "Initialization of assets" << endl;
 	// Set up the shaders
 	shader = new Shader("Shaders/simpleVertexShader.hlsl", "Shaders/simpleFragmentShader.txt");
 	nonDiffuseShader = new Shader("Shaders/simpleVertexShader.hlsl", "Shaders/nonDiffuseFragmentShader.hlsl");
@@ -172,6 +224,10 @@ void init()
 	earth = new Object(shader, "models/Earth.obj", earthTexture);
 	moon = new Object(shader, "models/Earth.obj", moonTexture);
 	sun = new Planet(nonDiffuseShader, "models/Earth.obj", sunTexture);
+
+	//Texture* missileTexture = new Texture("models/missile.png");
+	bulletModel = new RigidBody(nonTextureShader, "models/missile.obj");
+	bulletModel->setPosition(vec3(0, 0, 0));
 
 	// Doing initial transformations
 	earth->rotate(0.0, 0.0, 180.0);
@@ -209,6 +265,9 @@ void init()
 
 		asteroids.push_back(obj);
 	}
+
+	bullets = std::vector<RigidBody*>();
+	cout << "Finished initialization" << endl;
 }
 
 GLint midWindowX = width / 2;         // Middle of the window horizontally
@@ -222,14 +281,10 @@ void keypress(unsigned char key, int x, int y) {
 
 	if (key == 'a') {
 		rotation_camera_y += 1;
-		isRotating = true;
-		orientation_rotation_y = 1;
 	}
 
 	if (key == 'd') {
 		rotation_camera_y -= 1;
-		isRotating = true;
-		orientation_rotation_y = -1;
 	}
 
 	if (key == 'w') {
@@ -241,14 +296,13 @@ void keypress(unsigned char key, int x, int y) {
 	}
 
 	if (key == 'k') {
-		player->applyForce(ViewDir);
+		RigidBody* bullet = bulletModel->clone();
+		vec3 bulletViewDir = vec3(ViewDir.v[0], -ViewDir.v[1], ViewDir.v[2]);
+		bullet->setViewDir(bulletViewDir);
+		bullet->setVelocity(2.0f);
+		bullet->setPosition(player->getPosition());
+		bullets.push_back(bullet);
 	}
-
-	if (key == 'j') {
-		player->applyForce(ViewDir);
-	}
-
-
 
 	updateViewDir();
 }

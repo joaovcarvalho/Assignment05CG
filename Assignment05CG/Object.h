@@ -40,11 +40,12 @@ protected:
 
 	vec3 sizeBoundingBox;
 	vec3 centerBoundingBox;
-
 public:
 	Object(Shader* shader, char* meshName, Texture* texture = NULL);
 	Object();
 
+	vec3 minBoundingBox;
+	vec3 maxBoundingBox;
 	void Object::setVAO(float v);
 	void Object::setShader(Shader* s);
 	void Object::setVertexCounter(int n);
@@ -54,6 +55,9 @@ public:
 	void generateBoundingBox();
 	void Object::setBoundingBox(GLuint, GLuint, vec3, vec3);
 	void Object::setVPVBO(GLuint);
+
+	vec3 getMinVectorInWorld();
+	vec3 getMaxVectorInWorld();
 
 	std::vector<float> getVertices();
 
@@ -80,9 +84,13 @@ public:
 
 	void addChild(Object*);
 
-	Object* clone();
 	void drawBoundingBox();
+	void updateBoundingBox();
+	virtual Object* clone();
 
+	bool checkCollision(Object*);
 	~Object();
+protected:
+
 };
 

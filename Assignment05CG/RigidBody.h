@@ -5,11 +5,13 @@ class RigidBody :
 {
 public:
 	RigidBody(Shader* shader, char* meshName, Texture* texture = NULL);
+	RigidBody();
 	~RigidBody();
 
-	void applyForce(vec3);
 	void update();
 	void setViewDir(vec3);
+	void setVelocity(float);
+	virtual RigidBody* clone();
 
 private: 
 	float velocity;

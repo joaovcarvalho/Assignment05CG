@@ -53,6 +53,7 @@ vec3 Object::getRotation() {
 
 void Object::rotate(float x, float y, float z) {
 	this->rotation += vec3(x, y, z);
+	//updateBoundingBox();
 }
 
 void Object::scaleAll(float i) {
@@ -282,6 +283,7 @@ Object* Object::clone() {
 
 
 void Object::generateBoundingBox() {
+	std::cout << "Generating bounding box" << std::endl;
 	if (this->getVertices().size() == 0)
 		return;
 
@@ -314,7 +316,11 @@ void Object::generateBoundingBox() {
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+	this->updateBoundingBox();
+	std::cout << "Finishied generating bounding box" << std::endl;
+}
 
+void Object::updateBoundingBox(){
 	GLfloat
 		min_x, max_x,
 		min_y, max_y,
@@ -323,16 +329,27 @@ void Object::generateBoundingBox() {
 	min_y = max_y = this->getVertices()[1];
 	min_z = max_z = this->getVertices()[2];
 
+	mat4 transform = identity_mat4();
+	transform = rotate_z_deg(transform, rotation.v[2]);
+	transform = rotate_y_deg(transform, rotation.v[1]);
+	transform = rotate_x_deg(transform, rotation.v[0]);
+	
 	for (int i = 0; i < this->getVertices().size(); i += 3) {
-
-		if (this->getVertices()[i] < min_x) min_x = this->getVertices()[i];
-		if (this->getVertices()[i] > max_x) max_x = this->getVertices()[i];
-		if (this->getVertices()[i + 1] < min_y) min_y = this->getVertices()[i + 1];
-		if (this->getVertices()[i + 1] > max_y) max_y = this->getVertices()[i + 1];
-		if (this->getVertices()[i + 2] < min_z) min_z = this->getVertices()[i + 2];
-		if (this->getVertices()[i + 2] > max_z) max_z = this->getVertices()[i + 2];
+		vec3 vertice = vec3(this->getVertices()[i],
+						this->getVertices()[i + 1],
+						this->getVertices()[i + 2]);
+		vertice = vec3(transform * vec4(vertice, 1.0));
+	
+		if (vertice.v[0] < min_x) min_x = vertice.v[0];
+		if (vertice.v[0] > max_x) max_x = vertice.v[0];
+		if (vertice.v[1] < min_y) min_y = vertice.v[1];
+		if (vertice.v[1] > max_y) max_y = vertice.v[1];
+		if (vertice.v[2] < min_z) min_z = vertice.v[2];
+		if (vertice.v[2] > max_z) max_z = vertice.v[2];
 	}
 
+	maxBoundingBox = vec3(max_x, max_y, max_z);
+	minBoundingBox = vec3(min_x, min_y, min_z);
 	sizeBoundingBox = vec3(max_x - min_x, max_y - min_y, max_z - min_z);
 	centerBoundingBox = vec3((min_x + max_x) / 2, (min_y + max_y) / 2, (min_z + max_z) / 2);
 }
@@ -375,12 +392,13 @@ void Object::display(mat4 fatherMatrix) {
 
 void Object::drawBoundingBox() {
 	/* Apply object's transformation matrix */
+	//updateBoundingBox();
 	mat4 transform = translate(identity_mat4(), centerBoundingBox)* scale(identity_mat4(), sizeBoundingBox);
 	transform = scale(transform, this->scaleVec);
 
-	transform = rotate_z_deg(transform, rotation.v[2]);
-	transform = rotate_y_deg(transform, rotation.v[1]);
-	transform = rotate_x_deg(transform, rotation.v[0]);
+	//transform = rotate_z_deg(transform, rotation.v[2]);
+	//transform = rotate_y_deg(transform, rotation.v[1]);
+	//transform = rotate_x_deg(transform, rotation.v[0]);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices_bounding_box);
 
@@ -412,4 +430,37 @@ void Object::drawBoundingBox() {
 
 	//glDeleteBuffers(1, &vbo_vertices_bounding_box);
 	//glDeleteBuffers(1, &ibo_elements);
+}
+
+vec3 Object::getMinVectorInWorld() {
+	mat4 transform = identity_mat4();
+	//mat4 transform = translate(identity_mat4(), centerBoundingBox)* scale(identity_mat4(), sizeBoundingBox);
+	//mat4 transform = translate(identity_mat4(), centerBoundingBox);
+	transform = scale(transform, this->scaleVec);
+
+	transform = translate(transform, this->getPosition());
+
+	return vec3(transform* vec4(this->minBoundingBox, 1.0));
+}
+
+vec3 Object::getMaxVectorInWorld() {
+	mat4 transform = identity_mat4();
+	//mat4 transform = translate(identity_mat4(), centerBoundingBox)* scale(identity_mat4(), sizeBoundingBox);
+	//mat4 transform = translate(identity_mat4(), centerBoundingBox);
+
+	transform = translate(transform, this->getPosition());
+
+	return vec3(transform* vec4(this->maxBoundingBox, 1.0));
+}
+
+bool Object::checkCollision(Object* object){
+	vec3 maxInWorld = this->getMaxVectorInWorld(); 
+    vec3 minInWorld = this->getMinVectorInWorld(); 
+
+	return(maxInWorld.v[0] > object->getMinVectorInWorld().v[0] &&
+    minInWorld.v[0] < object->getMaxVectorInWorld().v[0] &&
+    maxInWorld.v[1] > object->getMinVectorInWorld().v[1] &&
+    minInWorld.v[1] < object->getMaxVectorInWorld().v[1] &&
+    maxInWorld.v[2] > object->getMinVectorInWorld().v[2] &&
+    minInWorld.v[2] < object->getMaxVectorInWorld().v[2]);
 }
