@@ -9,7 +9,11 @@ RigidBody::RigidBody(Shader* shader, char* meshName, Texture* texture):Object(sh
 }
 
 RigidBody::RigidBody() :Object() {
+	
+}
 
+void RigidBody::applyForce(float f){
+	velocity += f;
 }
 
 void RigidBody::setVelocity(float f) {
@@ -46,7 +50,9 @@ RigidBody* RigidBody::clone() {
 	obj->setBoundingBox(this->vbo_vertices_bounding_box, 
 						this->ibo_elements,
 						this->sizeBoundingBox,
-						this->centerBoundingBox);
+						this->centerBoundingBox,
+						this->minBoundingBox,
+						this->maxBoundingBox);
 
 	return obj;
 

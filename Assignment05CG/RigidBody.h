@@ -13,6 +13,7 @@ public:
 	void setVelocity(float);
 	virtual RigidBody* clone();
 
+	void RigidBody::applyForce(float f);
 private: 
 	float velocity;
 

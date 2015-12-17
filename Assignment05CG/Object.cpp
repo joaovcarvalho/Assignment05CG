@@ -1,4 +1,5 @@
 #include "Object.h"
+#include <cassert>
 
 Object::Object(Shader* shader, char* meshName, Texture* texture)
 {
@@ -32,6 +33,7 @@ Object::Object() {
 
 Object::~Object()
 {
+	glDeleteBuffers(1, &this->vao);	
 }
 
 vec3 Object::getPosition() {
@@ -98,10 +100,13 @@ void Object::bindVBO() {
 	if (this->vao == NULL) {
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
+
+		// Vertexs binding
 		glEnableVertexAttribArray(loc1);
 		glBindBuffer(GL_ARRAY_BUFFER, vp_vbo);
 		glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
+		// Normal bindings
 		glEnableVertexAttribArray(loc2);
 		glBindBuffer(GL_ARRAY_BUFFER, vn_vbo);
 		glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
@@ -113,13 +118,7 @@ void Object::bindVBO() {
 		}
 	}else{
 		glBindVertexArray(vao);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vp_vbo);
-		glEnableVertexAttribArray(loc1);
-		glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 	}
-
-
 }
 
 bool Object::load_mesh(const char* file_name) {
@@ -247,11 +246,13 @@ void Object::setVertices(std::vector<float> v) {
 	this->g_vp = v;
 }
 
-void Object::setBoundingBox(GLuint vbo, GLuint elements, vec3 size, vec3 center) {
+void Object::setBoundingBox(GLuint vbo, GLuint elements, vec3 size, vec3 center, vec3 min, vec3 max) {
 	this->vbo_vertices_bounding_box = vbo;
 	this->ibo_elements = elements;
 	this->sizeBoundingBox = size;
 	this->centerBoundingBox = center;
+	this->minBoundingBox = min;
+	this->maxBoundingBox = max;
 }
 
 void Object::setVPVBO(GLuint v) {
@@ -276,14 +277,15 @@ Object* Object::clone() {
 	obj->setBoundingBox(this->vbo_vertices_bounding_box, 
 						this->ibo_elements,
 						this->sizeBoundingBox,
-						this->centerBoundingBox);
+						this->centerBoundingBox,
+						this->minBoundingBox,
+						this->maxBoundingBox);
 
 	return obj;
 }
 
 
 void Object::generateBoundingBox() {
-	std::cout << "Generating bounding box" << std::endl;
 	if (this->getVertices().size() == 0)
 		return;
 
@@ -317,7 +319,6 @@ void Object::generateBoundingBox() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	this->updateBoundingBox();
-	std::cout << "Finishied generating bounding box" << std::endl;
 }
 
 void Object::updateBoundingBox(){
@@ -456,11 +457,15 @@ vec3 Object::getMaxVectorInWorld() {
 bool Object::checkCollision(Object* object){
 	vec3 maxInWorld = this->getMaxVectorInWorld(); 
     vec3 minInWorld = this->getMinVectorInWorld(); 
+	assert( length(maxInWorld) > 0);
+	assert( length(minInWorld) > 0);
+	assert( length(object->getMaxVectorInWorld()) > 0);
+	assert( length(object->getMinVectorInWorld()) > 0);
 
-	return(maxInWorld.v[0] > object->getMinVectorInWorld().v[0] &&
+	return(maxInWorld.v[0] >= object->getMinVectorInWorld().v[0] &&
     minInWorld.v[0] < object->getMaxVectorInWorld().v[0] &&
-    maxInWorld.v[1] > object->getMinVectorInWorld().v[1] &&
+    maxInWorld.v[1] >= object->getMinVectorInWorld().v[1] &&
     minInWorld.v[1] < object->getMaxVectorInWorld().v[1] &&
-    maxInWorld.v[2] > object->getMinVectorInWorld().v[2] &&
+    maxInWorld.v[2] >= object->getMinVectorInWorld().v[2] &&
     minInWorld.v[2] < object->getMaxVectorInWorld().v[2]);
 }

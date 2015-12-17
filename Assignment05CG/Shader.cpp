@@ -12,6 +12,7 @@ Shader::Shader(char* vertexFile, char* fragmentFile)
 
 Shader::~Shader()
 {
+	glDeleteProgram(this->getProgramID());
 }
 
 GLuint Shader::getProgramID() {

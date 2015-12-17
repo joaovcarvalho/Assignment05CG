@@ -7,7 +7,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Assignment05CG", "Assignmen
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1C3BF9F3-64DE-408B-B213-881EBAE0DDE1}"
 	ProjectSection(SolutionItems) = preProject
+		Assignment05CG\Shaders\identityFragmentShader.hlsl = Assignment05CG\Shaders\identityFragmentShader.hlsl
+		Assignment05CG\Shaders\identityVertexShader.hlsl = Assignment05CG\Shaders\identityVertexShader.hlsl
 		Assignment05CG\Shaders\nonDiffuseFragmentShader.hlsl = Assignment05CG\Shaders\nonDiffuseFragmentShader.hlsl
+		Assignment05CG\Shaders\nonTextureFragmentShader.hlsl = Assignment05CG\Shaders\nonTextureFragmentShader.hlsl
+		Assignment05CG\Shaders\postprocessingFragment.hlsl = Assignment05CG\Shaders\postprocessingFragment.hlsl
+		Assignment05CG\Shaders\postprocessingVertex.hlsl = Assignment05CG\Shaders\postprocessingVertex.hlsl
+		Assignment05CG\Shaders\simpleFragmentShader.hlsl = Assignment05CG\Shaders\simpleFragmentShader.hlsl
 		Assignment05CG\Shaders\simpleVertexShader.hlsl = Assignment05CG\Shaders\simpleVertexShader.hlsl
 	EndProjectSection
 EndProject

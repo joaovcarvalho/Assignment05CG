@@ -53,7 +53,7 @@ public:
 	void Object::setCenterBoudingBox(vec3);
 	void Object::setVertices(std::vector<float>);
 	void generateBoundingBox();
-	void Object::setBoundingBox(GLuint, GLuint, vec3, vec3);
+	void Object::setBoundingBox(GLuint, GLuint, vec3, vec3, vec3, vec3);
 	void Object::setVPVBO(GLuint);
 
 	vec3 getMinVectorInWorld();
